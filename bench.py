@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-
 """
 This is a little benchmarking script to exercise bagit.make_bag and
-bagit.validate using 1-8 parallel processes. It will download some images 
+bagit.validate using 1-8 parallel processes. It will download some images
 from NASA for use in bagging the first time it is run.
 """
 
@@ -26,7 +25,7 @@ if not os.path.isdir("bench-data"):
     ftp.retrlines("NLST", files.append)
 
     for file in files:
-        print(("fetching %s" % file))
+        print("fetching %s" % file)
         fh = open(os.path.join("bench-data", file), "wb")
         ftp.retrbinary("RETR %s" % file, fh.write)
         fh.close()
@@ -49,7 +48,9 @@ bagit.make_bag('bench-data', processes=%s)
 for p in range(1, 9):
     t = timeit.Timer(statement % p)
     print(
-        ("create w/ %s processes: %.2f seconds " % (p, (10 * t.timeit(number=10) / 10)))
+        "create w/ {} processes: {:.2f} seconds ".format(
+            p, (10 * t.timeit(number=10) / 10)
+        )
     )
 
 
@@ -71,9 +72,8 @@ bag.validate(processes=%s)
 for p in range(1, 9):
     t = timeit.Timer(statement % p)
     print(
-        (
-            "validate w/ %s processes: %.2f seconds "
-            % (p, (10 * t.timeit(number=10) / 10))
+        "validate w/ {} processes: {:.2f} seconds ".format(
+            p, (10 * t.timeit(number=10) / 10)
         )
     )
 

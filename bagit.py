@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import argparse
 import codecs
 import gettext
@@ -19,7 +15,10 @@ import warnings
 from collections import defaultdict
 from datetime import date
 from functools import partial
-from os.path import abspath, isdir, isfile, join
+from os.path import abspath
+from os.path import isdir
+from os.path import isfile
+from os.path import join
 
 try:
     from importlib.metadata import version
@@ -42,10 +41,7 @@ def find_locale_dir():
 TRANSLATION_CATALOG = gettext.translation(
     "bagit-python", localedir=find_locale_dir(), fallback=True
 )
-if sys.version_info < (3,):
-    _ = TRANSLATION_CATALOG.ugettext
-else:
-    _ = TRANSLATION_CATALOG.gettext
+_ = TRANSLATION_CATALOG.gettext
 
 MODULE_NAME = "bagit" if __name__ == "__main__" else __name__
 
@@ -140,7 +136,7 @@ HASH_BLOCK_SIZE = 512 * 1024
 open_text_file = partial(codecs.open, encoding="utf-8", errors="strict")
 
 # This is the same as decoding the byte values in codecs.BOM:
-UNICODE_BYTE_ORDER_MARK = "\uFEFF"
+UNICODE_BYTE_ORDER_MARK = "\ufeff"
 
 
 def make_bag(
@@ -257,12 +253,12 @@ def make_bag(
             if "Bagging-Date" not in bag_info:
                 bag_info["Bagging-Date"] = date.strftime(date.today(), "%Y-%m-%d")
             if "Bag-Software-Agent" not in bag_info:
-                bag_info["Bag-Software-Agent"] = "bagit.py v%s <%s>" % (
+                bag_info["Bag-Software-Agent"] = "bagit.py v{} <{}>".format(
                     VERSION,
                     PROJECT_URL,
                 )
 
-            bag_info["Payload-Oxum"] = "%s.%s" % (total_bytes, total_files)
+            bag_info["Payload-Oxum"] = f"{total_bytes}.{total_files}"
             _make_tag_file("bag-info.txt", bag_info)
 
             for c in checksums:
@@ -276,14 +272,14 @@ def make_bag(
     return Bag(bag_dir)
 
 
-class Bag(object):
+class Bag:
     """A representation of a bag."""
 
     valid_files = ["bagit.txt", "fetch.txt"]
     valid_directories = ["data"]
 
     def __init__(self, path=None):
-        super(Bag, self).__init__()
+        super().__init__()
         self.tags = {}
         self.info = {}
         #: Dictionary of manifest entries and the checksum values for each
@@ -401,10 +397,10 @@ class Bag(object):
 
         # We compare the filenames after Unicode normalization so we can
         # reliably detect normalization changes after bag creation:
-        files_on_fs = set(normalize_unicode(i) for i in self.payload_files())
-        files_in_manifest = set(
+        files_on_fs = {normalize_unicode(i) for i in self.payload_files()}
+        files_in_manifest = {
             normalize_unicode(i) for i in self.payload_entries().keys()
-        )
+        }
 
         if self.version_info >= (0, 97):
             files_in_manifest.update(self.missing_optional_tagfiles())
@@ -422,8 +418,8 @@ class Bag(object):
 
     def compare_fetch_with_fs(self):
         """Compares the fetch entries with the files actually
-           in the payload, and returns a list of all the files
-           that still need to be fetched.
+        in the payload, and returns a list of all the files
+        that still need to be fetched.
         """
 
         files_on_fs = set(self.payload_files())
@@ -449,13 +445,13 @@ class Bag(object):
                 yield rel_path
 
     def payload_entries(self):
-        """Return a dictionary of items """
+        """Return a dictionary of items"""
         # Don't use dict comprehension (compatibility with Python < 2.7)
-        return dict(
-            (key, value)
+        return {
+            key: value
             for (key, value) in self.entries.items()
             if key.startswith("data" + os.sep)
-        )
+        }
 
     def save(self, processes=1, manifests=False):
         """
@@ -519,7 +515,7 @@ class Bag(object):
 
             # Update Payload-Oxum
             LOGGER.info(_("Updating Payload-Oxum in %s"), self.tag_file_name)
-            self.info["Payload-Oxum"] = "%s.%s" % (total_bytes, total_files)
+            self.info["Payload-Oxum"] = f"{total_bytes}.{total_files}"
 
         _make_tag_file(self.tag_file_name, self.info)
 
@@ -533,11 +529,11 @@ class Bag(object):
         os.chdir(old_dir)
 
     def tagfile_entries(self):
-        return dict(
-            (key, value)
+        return {
+            key: value
             for (key, value) in self.entries.items()
             if not key.startswith("data" + os.sep)
-        )
+        }
 
     def missing_optional_tagfiles(self):
         """
@@ -618,7 +614,9 @@ class Bag(object):
         """
 
         try:
-            self.validate(processes=processes, fast=fast, completeness_only=completeness_only)
+            self.validate(
+                processes=processes, fast=fast, completeness_only=completeness_only
+            )
         except BagError:
             return False
 
@@ -776,7 +774,10 @@ class Bag(object):
 
             # each parsed url must resolve to a scheme and point to a netloc
             # if the scheme is file, netloc is not necessary
-            if not (all((parsed_url.scheme, parsed_url.netloc)) or parsed_url.scheme == "file"):
+            if not (
+                all((parsed_url.scheme, parsed_url.netloc))
+                or parsed_url.scheme == "file"
+            ):
                 raise BagError(_("Malformed URL in fetch.txt: %s") % url)
 
     def _validate_contents(self, processes=1, fast=False, completeness_only=False):
@@ -952,7 +953,7 @@ class BagError(Exception):
 
 class BagValidationError(BagError):
     def __init__(self, message, details=None):
-        super(BagValidationError, self).__init__()
+        super().__init__()
 
         if details is None:
             details = []
@@ -963,20 +964,20 @@ class BagValidationError(BagError):
     def __str__(self):
         if len(self.details) > 0:
             details = "; ".join([force_unicode(e) for e in self.details])
-            return "%s: %s" % (self.message, details)
+            return f"{self.message}: {details}"
         return self.message
 
 
 class ManifestErrorDetail(BagError):
     def __init__(self, path):
-        super(ManifestErrorDetail, self).__init__()
+        super().__init__()
 
         self.path = path
 
 
 class ChecksumMismatch(ManifestErrorDetail):
     def __init__(self, path, algorithm=None, expected=None, found=None):
-        super(ChecksumMismatch, self).__init__(path)
+        super().__init__(path)
 
         self.path = path
         self.algorithm = algorithm
@@ -1013,7 +1014,7 @@ class FileNormalizationConflict(BagError):
     """
 
     def __init__(self, file_a, file_b):
-        super(FileNormalizationConflict, self).__init__()
+        super().__init__()
 
         self.file_a = file_a
         self.file_b = file_b
@@ -1043,10 +1044,7 @@ def normalize_unicode_py2(s):
     return unicodedata.normalize("NFC", s)
 
 
-if sys.version_info > (3, 0):
-    normalize_unicode = normalize_unicode_py3
-else:
-    normalize_unicode = normalize_unicode_py2
+normalize_unicode = normalize_unicode_py3
 
 
 def build_unicode_normalized_lookup_dict(filenames):
@@ -1132,12 +1130,12 @@ def _calc_hashes(args):
     full_path = os.path.join(base_path, rel_path)
 
     # Create a clone of the default empty hash objects:
-    f_hashers = dict((alg, hashlib.new(alg)) for alg in hashes if alg in algorithms)
+    f_hashers = {alg: hashlib.new(alg) for alg in hashes if alg in algorithms}
 
     try:
         f_hashes = _calculate_file_hashes(full_path, f_hashers)
     except BagValidationError as e:
-        f_hashes = dict((alg, force_unicode(e)) for alg in f_hashers.keys())
+        f_hashes = {alg: force_unicode(e) for alg in f_hashers.keys()}
 
     return rel_path, f_hashes, hashes
 
@@ -1157,13 +1155,13 @@ def _calculate_file_hashes(full_path, f_hashers):
                     break
                 for i in f_hashers.values():
                     i.update(block)
-    except (OSError, IOError) as e:
+    except OSError as e:
         raise BagValidationError(
             _("Could not read %(filename)s: %(error)s")
             % {"filename": full_path, "error": force_unicode(e)}
         )
 
-    return dict((alg, h.hexdigest()) for alg, h in f_hashers.items())
+    return {alg: h.hexdigest() for alg, h in f_hashers.items()}
 
 
 def _load_tag_file(tag_file_name, encoding="utf-8-sig"):
@@ -1186,11 +1184,11 @@ def _load_tag_file(tag_file_name, encoding="utf-8-sig"):
 
 def _parse_tags(tag_file):
     """Parses a tag file, according to RFC 2822.  This
-       includes line folding, permitting extra-long
-       field values.
+    includes line folding, permitting extra-long
+    field values.
 
-       See http://www.faqs.org/rfcs/rfc2822.html for
-       more information.
+    See http://www.faqs.org/rfcs/rfc2822.html for
+    more information.
     """
 
     tag_name = None
@@ -1237,7 +1235,7 @@ def _make_tag_file(bag_info_path, bag_info):
             for txt in values:
                 # strip CR, LF and CRLF so they don't mess up the tag file
                 txt = re.sub(r"\n|\r|(\r\n)", "", force_unicode(txt))
-                f.write("%s: %s\n" % (h, txt))
+                f.write(f"{h}: {txt}\n")
 
 
 def make_manifests(data_dir, processes, algorithms=DEFAULT_CHECKSUMS, encoding="utf-8"):
@@ -1264,15 +1262,15 @@ def make_manifests(data_dir, processes, algorithms=DEFAULT_CHECKSUMS, encoding="
 
     # These will be keyed on the algorithm name so we can perform sanity checks
     # below to catch failures in the hashing process:
-    num_files = defaultdict(lambda: 0)
-    total_bytes = defaultdict(lambda: 0)
+    num_files = defaultdict(int)
+    total_bytes = defaultdict(int)
 
     for algorithm, values in manifest_data.items():
         manifest_filename = "manifest-%s.txt" % algorithm
 
         with open_text_file(manifest_filename, "w", encoding=encoding) as manifest:
             for digest, filename, byte_count in values:
-                manifest.write("%s  %s\n" % (digest, _encode_filename(filename)))
+                manifest.write(f"{digest}  {_encode_filename(filename)}\n")
                 num_files[algorithm] += 1
                 total_bytes[algorithm] += byte_count
 
@@ -1314,7 +1312,7 @@ def _make_tagmanifest_file(alg, bag_dir, encoding="utf-8"):
         join(bag_dir, tagmanifest_file), mode="w", encoding=encoding
     ) as tagmanifest:
         for digest, filename in checksums:
-            tagmanifest.write("%s %s\n" % (digest, filename))
+            tagmanifest.write(f"{digest} {filename}\n")
 
 
 def _find_tag_files(bag_dir):
@@ -1434,16 +1432,10 @@ def _decode_filename(s):
 
 def force_unicode_py2(s):
     """Reliably return a Unicode string given a possible unicode or byte string"""
-    if isinstance(s, str):
-        return s.decode("utf-8")
-    else:
-        return unicode(s)
+    return s
 
 
-if sys.version_info > (3, 0):
-    force_unicode = str
-else:
-    force_unicode = force_unicode_py2
+force_unicode = str
 
 # following code is used for command line program
 
@@ -1464,7 +1456,7 @@ class BagHeaderAction(argparse.Action):
 def _make_parser():
     parser = BagArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="bagit-python version %s\n\n%s\n" % (VERSION, __doc__.strip()),
+        description=f"bagit-python version {VERSION}\n\n{__doc__.strip()}\n",
     )
     parser.add_argument(
         "--processes",
@@ -1530,7 +1522,10 @@ def _make_parser():
     metadata_args = parser.add_argument_group(_("Optional Bag Metadata"))
     for header in STANDARD_BAG_INFO_HEADERS:
         metadata_args.add_argument(
-            "--%s" % header.lower(), type=str, action=BagHeaderAction, default=argparse.SUPPRESS
+            "--%s" % header.lower(),
+            type=str,
+            action=BagHeaderAction,
+            default=argparse.SUPPRESS,
         )
 
     parser.add_argument(
@@ -1573,7 +1568,9 @@ def main():
         parser.error(_("--fast is only allowed as an option for --validate!"))
 
     if args.completeness_only and not args.validate:
-        parser.error(_("--completeness-only is only allowed as an option for --validate!"))
+        parser.error(
+            _("--completeness-only is only allowed as an option for --validate!")
+        )
 
     _configure_logging(args)
 
@@ -1592,7 +1589,9 @@ def main():
                 if args.fast:
                     LOGGER.info(_("%s valid according to Payload-Oxum"), bag_dir)
                 elif args.completeness_only:
-                    LOGGER.info(_("%s is complete and valid according to Payload-Oxum"), bag_dir)
+                    LOGGER.info(
+                        _("%s is complete and valid according to Payload-Oxum"), bag_dir
+                    )
                 else:
                     LOGGER.info(_("%s is valid"), bag_dir)
             except BagError as e:

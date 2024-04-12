@@ -1,7 +1,3 @@
-# encoding: utf-8
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import codecs
 import datetime
 import hashlib
@@ -13,10 +9,9 @@ import sys
 import tempfile
 import unicodedata
 import unittest
-from os.path import join as j
-
-import mock
 from io import StringIO
+from os.path import join as j
+from unittest import mock
 
 import bagit
 
@@ -38,7 +33,7 @@ class SelfCleaningTestCase(unittest.TestCase):
     """TestCase subclass which cleans up self.tmpdir after each test"""
 
     def setUp(self):
-        super(SelfCleaningTestCase, self).setUp()
+        super().setUp()
 
         self.starting_directory = (
             os.getcwd()
@@ -62,7 +57,7 @@ class SelfCleaningTestCase(unittest.TestCase):
 
             shutil.rmtree(self.tmpdir)
 
-        super(SelfCleaningTestCase, self).tearDown()
+        super().tearDown()
 
 
 @mock.patch(
@@ -269,7 +264,7 @@ class TestSingleProcessValidation(SelfCleaningTestCase):
         BOM = codecs.BOM_UTF8
         if sys.version_info[0] >= 3:
             BOM = BOM.decode("utf-8")
-        with open(j(self.tmpdir, "bagit.txt"), "r") as bf:
+        with open(j(self.tmpdir, "bagit.txt")) as bf:
             bagfile = BOM + bf.read()
         with open(j(self.tmpdir, "bagit.txt"), "w") as bf:
             bf.write(bagfile)
@@ -334,7 +329,7 @@ class TestSingleProcessValidation(SelfCleaningTestCase):
         hasher = hashlib.new("md5")
         contents = slurp_text_file(j(self.tmpdir, "manifest-md5.txt")).encode("utf-8")
         hasher.update(contents)
-        with open(j(self.tmpdir, "tagmanifest-md5.txt"), "r") as tagmanifest:
+        with open(j(self.tmpdir, "tagmanifest-md5.txt")) as tagmanifest:
             tagman_contents = tagmanifest.read()
             tagman_contents = tagman_contents.replace(
                 bag.entries["manifest-md5.txt"]["md5"], hasher.hexdigest()
@@ -371,7 +366,7 @@ class TestSingleProcessValidation(SelfCleaningTestCase):
         for bad_path in bad_paths:
             bagit.make_bag(self.tmpdir, checksums=["md5"])
             with open(j(self.tmpdir, "manifest-md5.txt"), "wb+") as manifest_out:
-                line = "%s %s\n" % (hasher.hexdigest(), bad_path)
+                line = f"{hasher.hexdigest()} {bad_path}\n"
                 manifest_out.write(line.encode("utf-8"))
             self.assertRaises(bagit.BagError, bagit.Bag, self.tmpdir)
 
@@ -426,7 +421,7 @@ class TestSingleProcessValidation(SelfCleaningTestCase):
         self.assertRaises(bagit.BagValidationError, self.validate, bag)
 
         hasher = hashlib.new("md5")
-        with open(j(tagdir, "tagfolder", "tagfile"), "r") as tf:
+        with open(j(tagdir, "tagfolder", "tagfile")) as tf:
             contents = tf.read().encode("utf-8")
         hasher.update(contents)
         with open(j(self.tmpdir, "tagmanifest-md5.txt"), "w") as tagman:
@@ -456,9 +451,7 @@ class TestSingleProcessValidation(SelfCleaningTestCase):
 
 class TestMultiprocessValidation(TestSingleProcessValidation):
     def validate(self, bag, *args, **kwargs):
-        return super(TestMultiprocessValidation, self).validate(
-            bag, *args, processes=2, **kwargs
-        )
+        return super().validate(bag, *args, processes=2, **kwargs)
 
 
 @mock.patch(
@@ -688,15 +681,13 @@ class TestBag(SelfCleaningTestCase):
         self.assertIsInstance(bag, bagit.Bag)
         self.assertEqual(
             set(bag.payload_files()),
-            set(
-                [
-                    "data/README",
-                    "data/si/2584174182_ffd5c24905_b_d.jpg",
-                    "data/si/4011399822_65987a4806_b_d.jpg",
-                    "data/loc/2478433644_2839c5e8b8_o_d.jpg",
-                    "data/loc/3314493806_6f1db86d66_o_d.jpg",
-                ]
-            ),
+            {
+                "data/README",
+                "data/si/2584174182_ffd5c24905_b_d.jpg",
+                "data/si/4011399822_65987a4806_b_d.jpg",
+                "data/loc/2478433644_2839c5e8b8_o_d.jpg",
+                "data/loc/3314493806_6f1db86d66_o_d.jpg",
+            },
         )
         self.assertEqual(
             list(bag.manifest_files()), ["%s/manifest-sha384.txt" % self.tmpdir]
@@ -1007,7 +998,7 @@ Tag-File-Character-Encoding: UTF-8
 
 class TestFetch(SelfCleaningTestCase):
     def setUp(self):
-        super(TestFetch, self).setUp()
+        super().setUp()
 
         # All of these tests will involve fetch.txt usage with an existing bag
         # so we'll simply create one:
@@ -1102,98 +1093,97 @@ class TestFetch(SelfCleaningTestCase):
 
 
 class TestCLI(SelfCleaningTestCase):
-
-    @mock.patch('sys.stderr', new_callable=StringIO)
+    @mock.patch("sys.stderr", new_callable=StringIO)
     def test_directory_required(self, mock_stderr):
         testargs = ["bagit.py"]
 
         with self.assertRaises(SystemExit) as cm:
-            with mock.patch.object(sys, 'argv', testargs):
+            with mock.patch.object(sys, "argv", testargs):
                 bagit.main()
 
         self.assertEqual(cm.exception.code, 2)
         self.assertIn(
             "error: the following arguments are required: directory",
-            mock_stderr.getvalue()
+            mock_stderr.getvalue(),
         )
 
-    @mock.patch('sys.stderr', new_callable=StringIO)
+    @mock.patch("sys.stderr", new_callable=StringIO)
     def test_not_enough_processes(self, mock_stderr):
         testargs = ["bagit.py", "--processes", "0", self.tmpdir]
 
         with self.assertRaises(SystemExit) as cm:
-            with mock.patch.object(sys, 'argv', testargs):
+            with mock.patch.object(sys, "argv", testargs):
                 bagit.main()
 
         self.assertEqual(cm.exception.code, 2)
         self.assertIn(
             "error: The number of processes must be greater than 0",
-            mock_stderr.getvalue()
+            mock_stderr.getvalue(),
         )
 
-    @mock.patch('sys.stderr', new_callable=StringIO)
+    @mock.patch("sys.stderr", new_callable=StringIO)
     def test_fast_flag_without_validate(self, mock_stderr):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         testargs = ["bagit.py", "--fast", self.tmpdir]
 
         with self.assertRaises(SystemExit) as cm:
-            with mock.patch.object(sys, 'argv', testargs):
+            with mock.patch.object(sys, "argv", testargs):
                 bagit.main()
 
         self.assertEqual(cm.exception.code, 2)
         self.assertIn(
             "error: --fast is only allowed as an option for --validate!",
-            mock_stderr.getvalue()
+            mock_stderr.getvalue(),
         )
 
     def test_invalid_fast_validate(self):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         os.remove(j(self.tmpdir, "data", "loc", "2478433644_2839c5e8b8_o_d.jpg"))
         testargs = ["bagit.py", "--validate", "--completeness-only", self.tmpdir]
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         self.assertEqual(cm.exception.code, 1)
         self.assertIn(
             "%s is invalid: Payload-Oxum validation failed." % self.tmpdir,
-            captured.records[0].getMessage()
+            captured.records[0].getMessage(),
         )
 
     def test_valid_fast_validate(self):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         testargs = ["bagit.py", "--validate", "--fast", self.tmpdir]
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         self.assertEqual(cm.exception.code, 0)
         self.assertEqual(
             "%s valid according to Payload-Oxum" % self.tmpdir,
-            captured.records[0].getMessage()
+            captured.records[0].getMessage(),
         )
 
-    @mock.patch('sys.stderr', new_callable=StringIO)
+    @mock.patch("sys.stderr", new_callable=StringIO)
     def test_completeness_flag_without_validate(self, mock_stderr):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         testargs = ["bagit.py", "--completeness-only", self.tmpdir]
 
         with self.assertRaises(SystemExit) as cm:
-            with mock.patch.object(sys, 'argv', testargs):
+            with mock.patch.object(sys, "argv", testargs):
                 bagit.main()
 
         self.assertEqual(cm.exception.code, 2)
         self.assertIn(
             "error: --completeness-only is only allowed as an option for --validate!",
-            mock_stderr.getvalue()
+            mock_stderr.getvalue(),
         )
 
     def test_invalid_completeness_validate(self):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         old_path = j(self.tmpdir, "data", "README")
         new_path = j(self.tmpdir, "data", "extra_file")
         os.rename(old_path, new_path)
@@ -1202,32 +1192,32 @@ class TestCLI(SelfCleaningTestCase):
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         self.assertEqual(cm.exception.code, 1)
         self.assertIn(
             "%s is invalid: Bag is incomplete" % self.tmpdir,
-            captured.records[-1].getMessage()
+            captured.records[-1].getMessage(),
         )
 
     def test_valid_completeness_validate(self):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         testargs = ["bagit.py", "--validate", "--completeness-only", self.tmpdir]
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         self.assertEqual(cm.exception.code, 0)
         self.assertEqual(
             "%s is complete and valid according to Payload-Oxum" % self.tmpdir,
-            captured.records[0].getMessage()
+            captured.records[0].getMessage(),
         )
 
     def test_invalid_full_validate(self):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         readme = j(self.tmpdir, "data", "README")
         txt = slurp_text_file(readme)
         txt = "A" + txt[1:]
@@ -1238,26 +1228,23 @@ class TestCLI(SelfCleaningTestCase):
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         self.assertEqual(cm.exception.code, 1)
         self.assertIn("Bag validation failed", captured.records[-1].getMessage())
 
     def test_valid_full_validate(self):
-        bag = bagit.make_bag(self.tmpdir)
+        bagit.make_bag(self.tmpdir)
         testargs = ["bagit.py", "--validate", self.tmpdir]
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         self.assertEqual(cm.exception.code, 0)
-        self.assertEqual(
-            "%s is valid" % self.tmpdir,
-            captured.records[-1].getMessage()
-        )
+        self.assertEqual("%s is valid" % self.tmpdir, captured.records[-1].getMessage())
 
     def test_failed_create_bag(self):
         os.chmod(self.tmpdir, 0)
@@ -1266,13 +1253,13 @@ class TestCLI(SelfCleaningTestCase):
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         self.assertEqual(cm.exception.code, 1)
         self.assertIn(
             "Failed to create bag in %s" % self.tmpdir,
-            captured.records[-1].getMessage()
+            captured.records[-1].getMessage(),
         )
 
     def test_create_bag(self):
@@ -1280,7 +1267,7 @@ class TestCLI(SelfCleaningTestCase):
 
         with self.assertLogs() as captured:
             with self.assertRaises(SystemExit) as cm:
-                with mock.patch.object(sys, 'argv', testargs):
+                with mock.patch.object(sys, "argv", testargs):
                     bagit.main()
 
         for rec in captured.records:
@@ -1291,11 +1278,8 @@ class TestCLI(SelfCleaningTestCase):
 
 class TestUtils(unittest.TestCase):
     def setUp(self):
-        super(TestUtils, self).setUp()
-        if sys.version_info >= (3,):
-            self.unicode_class = str
-        else:
-            self.unicode_class = unicode
+        super().setUp()
+        self.unicode_class = str
 
     def test_force_unicode_str_to_unicode(self):
         self.assertIsInstance(bagit.force_unicode("foobar"), self.unicode_class)
@@ -1305,8 +1289,6 @@ class TestUtils(unittest.TestCase):
 
     def test_force_unicode_int(self):
         self.assertIsInstance(bagit.force_unicode(1234), self.unicode_class)
-
-
 
 
 if __name__ == "__main__":

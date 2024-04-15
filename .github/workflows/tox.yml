@@ -1,5 +1,8 @@
 name: tox
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "dev/am-116-rebase"
 jobs:
   tox:
     runs-on: ubuntu-latest
